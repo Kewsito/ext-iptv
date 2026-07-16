@@ -1,0 +1,12 @@
+{
+    "manifest_version": 3,
+    "name": "IPTV Player HLS",
+    "version": "2.0",
+    "description": "Reproductor IPTV simplificado con Tailwind CSS",
+    "permissions": [
+        "storage"
+    ],
+    "action": {
+        "default_popup": "index.html"
+    }
+}
