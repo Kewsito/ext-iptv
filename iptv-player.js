@@ -7,7 +7,7 @@ const CONFIG = {
 
 import { extractChannels } from "./extractChannels.js";
 
-let hls = null;
+let hlsInstance = null;
 const videoElement = document.getElementById('main-video');
 const container = document.getElementById('channels-container');
 const emptyState = document.getElementById('empty-state');
@@ -94,26 +94,35 @@ function reproducirCanal(url, nombre) {
     // Actualizar UI con el nombre del canal actual
     currentNameLabel.innerText = nombre || "Reproduciendo...";
 
-    // Manejo inicial de HLS.js (Destruir instancia anterior si existe)
-    if(hls) hls.destroy();
-    
-    const hlsInstance = new Hls();
-    
-    try {
-        hlsInstance.loadSource(url);
-        hlsInstance.attachMedia(videoElement);
-
-        // Manejo de errores de manifest parsing
-        hlsInstance.on(Hls.Events.MANIFEST_PARSED, function () {
-            videoElement.play().catch(e => console.log("Play failed:", e));
-        });
-
-        // Detener reproducción anterior cuando cambia de canal (opcional)
-        if(videoElement.paused) {
-            videoElement.play();
+    if (Hls.isSupported()) {
+        
+        // 2. Si ya hay una instancia global corriendo, la destruimos
+        if (hlsInstance) {
+            hlsInstance.destroy();
         }
+        
+        // 3. ¡CUIDADO AQUÍ! Usamos la variable global, NO le pongas "const" ni "let"
+        hlsInstance = new Hls();
+        
+        try {
+            hlsInstance.loadSource(url);
+            hlsInstance.attachMedia(videoElement);
 
-    } catch (error) {
-        throw new Error("Error al inicializar HLS: " + error.message);
+            // Manejo de errores de manifest parsing
+            hlsInstance.on(Hls.Events.MANIFEST_PARSED, function () {
+                videoElement.play().catch(e => console.log("La reproducción falló:", e));
+            });
+
+        } catch (error) {
+            throw new Error("Error al inicializar HLS: " + error.message);
+        }
+    } 
+    // Opcional pero recomendado: Fallback para navegadores como Safari 
+    // que soportan HLS de forma nativa sin necesitar la librería.
+    else if (videoElement.canPlayType('application/vnd.apple.mpegurl')) {
+        videoElement.src = url;
+        videoElement.addEventListener('loadedmetadata', function() {
+            videoElement.play().catch(e => console.log("La reproducción falló:", e));
+        });
     }
 }
